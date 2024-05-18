@@ -222,7 +222,11 @@ server <- function(input, output) {
     
     output$T = renderUI({
       if(!is.na(input$c)){
-        textInput("t","請輸入樣站數量:")
+        a <- as.numeric(input$c)
+        b = which(river == a)
+        if(!is.na(b)){
+          selectInput("t","請選擇樣站數量:",results[[b]]$iNextEst$coverage_based[,3])
+        }
       }
     })
     
@@ -278,9 +282,11 @@ server <- function(input, output) {
           k[i] = bias_function(a[[i]],true_ratio)
         }
         
+        w = which(results[[b]]$iNextEst$coverage_based[,3]==input$t)
+        
         good_site = paste0("以上為最佳樣站組合，物種組成偏誤值:",min(k)*100,"%")
         
-        species_num = paste0("預測物種數為:")
+        species_num = paste0("預測物種數為:",results[[b]]$iNextEst$coverage_based[w,6])
         
         list(colnames(a[[which.min(k)]]),c(good_site,species_num))
       }
