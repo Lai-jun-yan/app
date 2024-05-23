@@ -1,5 +1,6 @@
 library(shiny)
 library(iNEXT)
+library(DT)
 
 # UI 程式碼
 ui <- fluidPage(
@@ -20,9 +21,9 @@ ui <- fluidPage(
       h3("iNEXT分析結果"),
       tabsetPanel(
         type = "tab",
-        tabPanel("稀釋外插曲線",plotOutput("p")),
-        tabPanel("summary",tableOutput("summary")),
-        tabPanel("最佳樣站組合",tableOutput("best_sites"),verbatimTextOutput("good"))
+        tabPanel("稀釋外插曲線", plotOutput("p")),
+        tabPanel("summary", tableOutput("summary")),
+        tabPanel("最佳樣站組合", DT::dataTableOutput("best_sites"), verbatimTextOutput("good"))
       )
     )
   )
@@ -225,7 +226,7 @@ server <- function(input, output) {
       if (!is.na(input$c)){
         a <- as.numeric(input$c)
         b = which(river == a)
-        river_subset = subset(results[[b]]$iNextEst$coverage_based,Method == "Rarefaction")
+        river_subset = subset(results[[b]]$iNextEst$coverage_based, Method == "Rarefaction")
         if(!is.na(b)){
           selectInput("t", "請選擇樣站數量:", river_subset[, 3])
         }
@@ -292,12 +293,11 @@ server <- function(input, output) {
         
         best_sites <- colnames(a[[which.min(k)]])
         
-        output$best_sites <- renderTable({
-          data.frame("最佳樣站" = best_sites) 
-        })
+        output$best_sites <- DT::renderDataTable({
+          data.frame("最佳樣站" = best_sites)
+        }, options = list(pageLength = 10))
         
-        cat("以上為最佳樣站組合，物種組成差異:",round(min(k) * 100,2), "%，","物種數:", round(n),"，","物種覆蓋度:",round(results[[river_num]]$iNextEst$coverage_based[co == input$t,2]*100,2),"%","。")
-        
+        cat("以上為最佳樣站組合，物種組成差異:", round(min(k) * 100, 2), "%，", "物種數:", round(n), "，", "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%", "。")
       })
     })
   })
@@ -305,4 +305,5 @@ server <- function(input, output) {
 
 # 啟動應用
 shinyApp(ui = ui, server = server)
+
 
