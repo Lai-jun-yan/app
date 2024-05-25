@@ -14,7 +14,7 @@ ui <- fluidPage(
       uiOutput("alpha_selector"),
       uiOutput("code"),
       uiOutput("T"),
-      actionButton("start_analysis", "最佳樣站組合分析")
+      actionButton("start_analysis", "建議樣站組合分析")
     ),
     
     mainPanel(
@@ -22,8 +22,8 @@ ui <- fluidPage(
       tabsetPanel(
         type = "tab",
         tabPanel("稀釋外插曲線", plotOutput("p")),
-        tabPanel("summary", tableOutput("summary")),
-        tabPanel("最佳樣站組合", DT::dataTableOutput("best_sites"), verbatimTextOutput("good"))
+        tabPanel("物種覆蓋度之樣站數量建議", tableOutput("summary")),
+        tabPanel("建議樣站組合", DT::dataTableOutput("best_sites"), verbatimTextOutput("ca"))
       )
     )
   )
@@ -235,69 +235,75 @@ server <- function(input, output) {
     
     observeEvent(input$start_analysis, {
       req(input$c, input$t)
-      output$good <- renderPrint({
-        river_num = which(river == input$c)
+      
+      # 定義進度條
+      withProgress(message = '組合樣站中...', value = 0, {
+        river_num <- which(river == input$c)
         
-        site_selection_result = function(x, t, n = 1000000){
-          total_site_selection = list()
-          withProgress(message = '計算中...', value = 0, {
-            for (i in 1:n) {
-              total_site_selection[[i]] = site_collection(x, t)
-              if (i %% 10000 == 0) {  
-                incProgress(10000 / n, detail = paste("進度:", round(i / n * 100, 2), "%"))
-              }
+        site_selection_result <- function(x, t, n = 1000000){
+          total_site_selection <- list()
+          
+          for (i in 1:n) {
+            total_site_selection[[i]] <- site_collection(x, t)
+            if (i %% 10000 == 0) {  
+              incProgress(10000 / n, detail = paste("進度:", round(i / n * 100, 2), "%"))
             }
-          })
+          }
+          
           return(total_site_selection)
         }
         
-        a = site_selection_result(all_river[[river_num]], input$t)
+        a <- site_selection_result(all_river[[river_num]], input$t)
         
-        total = sum(all_river[[river_num]])
+        total <- sum(all_river[[river_num]])
         
-        site_1 = c()
+        site_1 <- c()
         
         for (i in 1:nrow(all_river[[river_num]])) {
-          site_1[i] = sum(all_river[[river_num]][i, ])
+          site_1[i] <- sum(all_river[[river_num]][i, ])
         }
         
-        true_ratio = site_1 / total
+        true_ratio <- site_1 / total
         
-        bias_function = function(x, true_ratio){
-          total = sum(x)
+        bias_function <- function(x, true_ratio){
+          total <- sum(x)
           
-          site_1 = c()
+          site_1 <- c()
           
           for (i in 1:nrow(x)) {
-            site_1[i] = sum(x[i, ])
+            site_1[i] <- sum(x[i, ])
           }
           
-          ratio = site_1 / total
+          ratio <- site_1 / total
           
-          bias = mean(abs(true_ratio - ratio))
+          bias <- mean(abs(true_ratio - ratio))
           
           return(bias)
         }
         
-        k = c()
+        k <- c()
         
         for (i in 1:length(a)) {
-          k[i] = bias_function(a[[i]], true_ratio)
+          k[i] <- bias_function(a[[i]], true_ratio)
         }
         
-        w = which(results[[river_num]]$iNextEst$coverage_based[, 3] == input$t)
+        w <- which(results[[river_num]]$iNextEst$coverage_based[, 3] == input$t)
         
-        n = as.numeric(results[[river_num]]$iNextEst$coverage_based[w, 6])
+        n <- as.numeric(results[[river_num]]$iNextEst$coverage_based[w, 6])
         
-        co = results[[river_num]]$iNextEst$coverage_based$t
+        co <- results[[river_num]]$iNextEst$coverage_based$t
         
         best_sites <- colnames(a[[which.min(k)]])
         
         output$best_sites <- DT::renderDataTable({
           data.frame("最佳樣站" = best_sites)
         }, options = list(pageLength = 10))
-        
-        cat("以上為最佳樣站組合，物種組成差異:", round(min(k) * 100, 2), "%，", "物種數:", round(n), "，", "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%", "。")
+      })
+      
+      output$ca <- renderText({
+        paste("以上為建議樣站組合，物種組成差異:", round(min(k) * 100, 2), "%，",
+              "預估物種數:", round(n), "，",
+              "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%。")
       })
     })
   })
@@ -305,5 +311,3 @@ server <- function(input, output) {
 
 # 啟動應用
 shinyApp(ui = ui, server = server)
-
-
