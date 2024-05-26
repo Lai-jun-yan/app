@@ -21,7 +21,7 @@ ui <- fluidPage(
       h3("iNEXT分析結果"),
       tabsetPanel(
         type = "tab",
-        tabPanel("稀釋外插曲線", plotOutput("p")),
+        tabPanel("稀釋外插曲線", plotOutput("p"),verbatimTextOutput("cat")),
         tabPanel("物種覆蓋度之樣站數量建議", tableOutput("summary")),
         tabPanel("建議樣站組合", DT::dataTableOutput("best_sites"), verbatimTextOutput("ca"))
       )
@@ -233,6 +233,13 @@ server <- function(input, output) {
       }
     })
     
+    output$cat <- renderText({
+      river_num <- which(river == input$c)
+      co <- results[[river_num]]$iNextEst$coverage_based$t
+      paste(
+        "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%。")
+    })
+    
     observeEvent(input$start_analysis, {
       req(input$c, input$t)
       
@@ -302,8 +309,7 @@ server <- function(input, output) {
       
       output$ca <- renderText({
         paste("以上為建議樣站組合，物種組成差異:", round(min(k) * 100, 2), "%，",
-              "預估物種數:", round(n), "，",
-              "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%。")
+              "物種數:", round(n))
       })
     })
   })
