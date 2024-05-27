@@ -237,7 +237,7 @@ server <- function(input, output) {
       river_num <- which(river == input$c)
       co <- results[[river_num]]$iNextEst$coverage_based$t
       paste(
-        "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%。")
+        "物種覆蓋度:", round(results[[river_num]]$iNextEst$coverage_based[co == input$t, 2] * 100, 2), "%")
     })
     
     observeEvent(input$start_analysis, {
@@ -303,7 +303,7 @@ server <- function(input, output) {
         best_sites <- colnames(a[[which.min(k)]])
         
         output$best_sites <- DT::renderDataTable({
-          data.frame("最佳樣站" = best_sites)
+          data.frame("建議樣站" = best_sites)
         }, options = list(pageLength = 10))
       })
       
