@@ -23,7 +23,8 @@ ui <- fluidPage(
         type = "tab",
         tabPanel("稀釋外插曲線", plotOutput("p"),verbatimTextOutput("cat")),
         tabPanel("物種覆蓋度之樣站數量建議", tableOutput("summary")),
-        tabPanel("建議樣站組合", DT::dataTableOutput("best_sites"), verbatimTextOutput("ca"))
+        tabPanel("建議樣站組合", DT::dataTableOutput("best_sites"), verbatimTextOutput("ca")),
+        tabPanel("樣站地點圖", leafletOutput("map",height = 600))
       )
     )
   )
@@ -311,6 +312,30 @@ server <- function(input, output) {
         paste("以上為建議樣站組合，物種組成差異:", round(min(k) * 100, 2), "%，",
               "物種數:", round(n))
       })
+      
+      z <- data[data$河川代碼 == input$c, ]
+      
+      q <- data.frame(locality = best_sites)
+      loc_dt <- z %>% select(locality, decimalLatitude, decimalLongitude) %>% distinct() %>% na.omit()
+      q <- left_join(q, loc_dt, by = "locality")
+      
+      lat_part <- median(q$decimalLatitude)
+      lon_part <- median(q$decimalLongitude)
+      
+      # 創建 SharedData 物件以便於互動式標籤
+      shared_q <- SharedData$new(q)
+      
+      # 將所有樣站資料也轉換為 SharedData 物件
+      shared_z <- SharedData$new(z)
+      
+      output$map <- renderLeaflet({
+        leaflet() %>%
+          addTiles() %>%
+          addCircleMarkers(data = shared_q, ~decimalLongitude, ~decimalLatitude, popup = ~locality, color = "red", radius = 6, group = "selected") %>%
+          addCircleMarkers(data = shared_z, ~decimalLongitude, ~decimalLatitude, popup = ~locality, color = "blue", radius = 2.5, group = "all") %>%
+          setView(lng = lon_part, lat = lat_part, zoom = 10)
+      })
+      
     })
   })
 }
