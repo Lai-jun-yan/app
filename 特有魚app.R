@@ -1,5 +1,10 @@
 library(shiny)
+library(dplyr)
+library(ggplot2)
+library(ggmap)
 library(iNEXT)
+library(leaflet)
+library(crosstalk)
 library(DT)
 
 # UI 程式碼
